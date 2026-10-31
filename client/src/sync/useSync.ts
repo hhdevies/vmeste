@@ -121,8 +121,15 @@ export function useSync(opts: Options) {
       if (isHost && engaged && now - lastBeat.current >= HEARTBEAT_MS && !a.isBuffering()) {
         lastBeat.current = now;
         const s = o.current.stateRef.current;
-        const playing = !a.isPaused();
-        socket.emit('host:state', { playing, position: a.getTime(), rate: s.rate });
+        // Heartbeat только уточняет позицию и никогда сам не ставит паузу:
+        // плеер хоста может «стоять» из‑за медленной загрузки YouTube или фоновой вкладки.
+        // Play/pause меняются только явными командами хоста (и концом фильма).
+        const ended = a.getDuration() > 0 && a.getTime() >= a.getDuration() - 0.5;
+        if (ended && s.playing) {
+          socket.emit('host:state', { playing: false, position: a.getTime(), rate: s.rate });
+        } else if (!document.hidden && s.playing === !a.isPaused()) {
+          socket.emit('host:state', { playing: s.playing, position: a.getTime(), rate: s.rate });
+        }
       }
 
       setView({ time: a.getTime(), duration: a.getDuration(), paused: a.isPaused(), buffering: a.isBuffering() });
