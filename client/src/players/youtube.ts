@@ -76,7 +76,7 @@ export class YouTubeAdapter implements PlayerAdapter {
     return this.ready ? this.player.getPlayerState() : -1;
   }
 
-  /** YouTube не возвращает промис из playVideo, поэтому ждём фактического старта до 2.5 с */
+  /** YouTube не возвращает промис из playVideo, поэтому ждём фактического старта до 6 с */
   play(): Promise<void> {
     if (!this.ready || this.st === PLAYING || this.st === BUFFERING) return Promise.resolve();
     this.player.playVideo();
@@ -87,7 +87,7 @@ export class YouTubeAdapter implements PlayerAdapter {
       const check = () => {
         if (this.destroyed || token !== this.playToken) return resolve(); // отменено паузой
         if (this.st === PLAYING || this.st === BUFFERING) return resolve();
-        if (Date.now() - t0 > 2500) return reject(new DOMException('YouTube autoplay blocked', 'NotAllowedError'));
+        if ((Date.now() - t0 > 6000 && this.st !== -1) || Date.now() - t0 > 15000) return reject(new DOMException('YouTube autoplay blocked', 'NotAllowedError'));
         setTimeout(check, 200);
       };
       check();
